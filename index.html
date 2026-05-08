@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mooligai — Medicinal Plant Encyclopedia</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #F5F0E8;
+    --deep-green: #1A3A2A;
+    --mid-green: #2D5A3D;
+    --light-green: #4A8C5C;
+    --accent-gold: #C8973A;
+    --accent-terracotta: #C05A2B;
+    --text-dark: #1C2B1E;
+    --text-mid: #3D5245;
+    --text-light: #6B8573;
+    --border: rgba(45,90,61,0.15);
+    --surface: rgba(255,255,255,0.85);
+    --tag-bg: rgba(74,140,92,0.12);
+    --radius: 12px;
+    --radius-lg: 20px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--text-dark);
+    min-height: 100vh;
+    position: relative;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: 
+      radial-gradient(ellipse 80% 60% at 20% 0%, rgba(74,140,92,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 80% 100%, rgba(200,151,58,0.06) 0%, transparent 60%);
+    pointer-events: none; z-index: 0;
+  }
+  #app { position: relative; z-index: 1; }
+
+  /* NAV */
+  nav {
+    background: var(--deep-green);
+    padding: 0 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 64px; position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.15);
+  }
+  .nav-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem; font-weight: 700;
+    color: #fff; letter-spacing: -0.5px; cursor: pointer;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .nav-logo span { color: var(--accent-gold); font-style: italic; }
+  .nav-logo-leaf { font-size: 1.4rem; }
+  .nav-subtitle { font-size: 0.7rem; color: rgba(255,255,255,0.5); letter-spacing: 2px; text-transform: uppercase; font-family: 'DM Sans', sans-serif; font-weight: 300; }
+
+  /* HERO */
+  .hero {
+    padding: 5rem 2rem 4rem;
+    text-align: center;
+    max-width: 800px; margin: 0 auto;
+  }
+  .hero-eyebrow {
+    font-size: 0.75rem; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--accent-gold); font-weight: 500; margin-bottom: 1rem;
+  }
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.2rem, 5vw, 3.5rem);
+    font-weight: 700; line-height: 1.15;
+    color: var(--deep-green); margin-bottom: 1rem;
+  }
+  .hero h1 em { color: var(--light-green); font-style: italic; }
+  .hero p { color: var(--text-mid); font-size: 1.05rem; line-height: 1.7; max-width: 560px; margin: 0 auto 2.5rem; }
+
+  /* SEARCH BAR */
+  .search-wrap {
+    max-width: 560px; margin: 0 auto 1.5rem;
+    position: relative;
+  }
+  .search-input {
+    width: 100%; padding: 1rem 1.2rem 1rem 3rem;
+    font-size: 1rem; font-family: 'DM Sans', sans-serif;
+    border: 2px solid var(--border);
+    border-radius: 50px;
+    background: var(--surface);
+    color: var(--text-dark);
+    outline: none; transition: all 0.2s;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+  }
+  .search-input:focus { border-color: var(--light-green); box-shadow: 0 4px 24px rgba(74,140,92,0.18); }
+  .search-icon {
+    position: absolute; left: 1.1rem; top: 50%; transform: translateY(-50%);
+    color: var(--text-light); font-size: 1.1rem; pointer-events: none;
+  }
+  .search-input::placeholder { color: var(--text-light); }
+
+  /* FILTERS */
+  .filters {
+    display: flex; flex-wrap: wrap; gap: 0.6rem;
+    justify-content: center; max-width: 720px; margin: 0 auto;
+    padding-bottom: 3.5rem;
+  }
+  .filter-btn {
+    padding: 0.5rem 1.1rem;
+    border: 1.5px solid var(--border);
+    border-radius: 50px; background: var(--surface);
+    color: var(--text-mid); font-size: 0.85rem; font-weight: 500;
+    cursor: pointer; transition: all 0.18s; font-family: 'DM Sans', sans-serif;
+  }
+  .filter-btn:hover { border-color: var(--light-green); color: var(--mid-green); background: rgba(74,140,92,0.07); }
+  .filter-btn.active {
+    background: var(--mid-green); color: #fff; border-color: var(--mid-green);
+  }
+
+  /* SECTION */
+  .section-label {
+    text-align: center; margin-bottom: 2rem;
+    font-size: 0.75rem; letter-spacing: 2.5px; text-transform: uppercase;
+    color: var(--text-light); font-weight: 500;
+  }
+
+  /* PLANT GRID */
+  .plants-section { max-width: 1200px; margin: 0 auto; padding: 0 2rem 5rem; }
+  .plants-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+  .plant-card {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    overflow: hidden; cursor: pointer;
+    transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s;
+    display: flex; flex-direction: column;
+  }
+  .plant-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 16px 40px rgba(26,58,42,0.12);
+    border-color: rgba(74,140,92,0.35);
+  }
+  .plant-img-wrap {
+    height: 190px; overflow: hidden; position: relative;
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  }
+  .plant-img-wrap img {
+    width: 100%; height: 100%; object-fit: cover;
+    transition: transform 0.4s ease;
+  }
+  .plant-card:hover .plant-img-wrap img { transform: scale(1.06); }
+  .plant-badge {
+    position: absolute; top: 12px; right: 12px;
+    background: var(--deep-green); color: #fff;
+    font-size: 0.7rem; padding: 4px 10px; border-radius: 50px;
+    font-weight: 500; letter-spacing: 0.5px;
+  }
+  .home-badge {
+    position: absolute; top: 12px; left: 12px;
+    background: var(--accent-gold); color: #fff;
+    font-size: 0.65rem; padding: 4px 10px; border-radius: 50px;
+    font-weight: 600; letter-spacing: 0.5px;
+  }
+  .plant-body { padding: 1.2rem; flex: 1; display: flex; flex-direction: column; }
+  .plant-name { font-family: 'Playfair Display', serif; font-size: 1.2rem; font-weight: 600; color: var(--deep-green); margin-bottom: 0.2rem; }
+  .plant-tamil { font-size: 0.8rem; color: var(--accent-gold); font-weight: 500; margin-bottom: 0.6rem; letter-spacing: 0.3px; }
+  .plant-sci { font-size: 0.75rem; color: var(--text-light); font-style: italic; margin-bottom: 0.9rem; }
+  .plant-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: auto; }
+  .plant-tag {
+    font-size: 0.72rem; padding: 3px 9px;
+    background: var(--tag-bg); color: var(--mid-green);
+    border-radius: 50px; font-weight: 500;
+  }
+  .no-results {
+    text-align: center; grid-column: 1/-1;
+    padding: 4rem 2rem; color: var(--text-light);
+  }
+  .no-results p { font-size: 1.1rem; margin-top: 0.5rem; }
+
+  /* DETAIL PAGE */
+  #detail-page { display: none; }
+  .detail-hero {
+    background: var(--deep-green); position: relative; overflow: hidden;
+    min-height: 340px; display: flex; align-items: flex-end;
+  }
+  .detail-hero-bg {
+    position: absolute; inset: 0;
+    background-size: cover; background-position: center;
+    opacity: 0.3; filter: saturate(0.6);
+  }
+  .detail-hero-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(26,58,42,0.95) 0%, rgba(26,58,42,0.4) 100%);
+  }
+  .detail-hero-content {
+    position: relative; z-index: 2;
+    padding: 2.5rem; max-width: 800px;
+  }
+  .detail-back {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: rgba(255,255,255,0.7); font-size: 0.85rem; cursor: pointer;
+    margin-bottom: 1.5rem; transition: color 0.15s;
+    background: none; border: none; font-family: 'DM Sans', sans-serif;
+  }
+  .detail-back:hover { color: #fff; }
+  .detail-home-tag {
+    display: inline-block; background: var(--accent-gold); color: #fff;
+    font-size: 0.72rem; padding: 4px 12px; border-radius: 50px;
+    font-weight: 600; margin-bottom: 0.8rem;
+  }
+  .detail-title { font-family: 'Playfair Display', serif; font-size: clamp(2rem,4vw,2.8rem); font-weight: 700; color: #fff; line-height: 1.1; }
+  .detail-tamil { color: var(--accent-gold); font-size: 1rem; margin-top: 0.3rem; font-weight: 500; }
+  .detail-sci { color: rgba(255,255,255,0.6); font-style: italic; font-size: 0.9rem; margin-top: 0.2rem; }
+
+  .detail-body { max-width: 900px; margin: 0 auto; padding: 3rem 2rem 5rem; }
+  .detail-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 1rem; margin-bottom: 2.5rem;
+  }
+  .meta-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1rem 1.2rem;
+  }
+  .meta-label { font-size: 0.7rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-light); font-weight: 500; margin-bottom: 0.4rem; }
+  .meta-value { font-size: 0.95rem; color: var(--deep-green); font-weight: 500; }
+
+  .detail-section { margin-bottom: 2.2rem; }
+  .detail-section-title {
+    font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 600;
+    color: var(--deep-green); margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid rgba(74,140,92,0.2);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-icon { font-size: 1.2rem; }
+  .detail-list { list-style: none; display: flex; flex-direction: column; gap: 0.55rem; }
+  .detail-list li {
+    font-size: 0.95rem; line-height: 1.65; color: var(--text-mid);
+    padding-left: 1.4rem; position: relative;
+  }
+  .detail-list li::before {
+    content: '●'; position: absolute; left: 0;
+    color: var(--light-green); font-size: 0.5rem; top: 0.55rem;
+  }
+  .side-effects li::before { color: var(--accent-terracotta) !important; }
+  .side-effects { border-left: 3px solid rgba(192,90,43,0.25); padding-left: 0.8rem; }
+  .detail-tags-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+  .detail-tag {
+    font-size: 0.8rem; padding: 5px 14px;
+    background: var(--tag-bg); color: var(--mid-green);
+    border-radius: 50px; font-weight: 500;
+  }
+
+  /* FOOTER */
+  footer { background: var(--deep-green); color: rgba(255,255,255,0.55); text-align: center; padding: 2rem; font-size: 0.82rem; }
+
+  /* RESPONSIVE */
+  @media (max-width: 600px) {
+    nav { padding: 0 1rem; }
+    .hero { padding: 3rem 1.2rem 2.5rem; }
+    .plants-section { padding: 0 1.2rem 4rem; }
+    .detail-body { padding: 2rem 1.2rem 4rem; }
+    .detail-hero-content { padding: 1.5rem; }
+    .detail-meta-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* ANIMATION */
+  @keyframes fadeUp { from { opacity:0; transform:translateY(16px);} to {opacity:1;transform:translateY(0);} }
+  .plant-card { animation: fadeUp 0.4s ease both; }
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo" onclick="showHome()">
+    <span class="nav-logo-leaf">🌿</span>
+    Moo<span>ligai</span>
+  </div>
+  <div class="nav-subtitle">Medicinal Plant Encyclopedia</div>
+</nav>
+
+<!-- HOME PAGE -->
+<div id="home-page">
+
+  <div class="hero">
+    <div class="hero-eyebrow">Tamil Nadu Traditional Medicine</div>
+    <h1>Discover the Power of<br><em>Medicinal Plants</em></h1>
+    <p>Explore an encyclopedia of nature's healers — from your kitchen garden to the ancient forests. Find plants by name or by the ailment they treat.</p>
+
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" class="search-input" id="searchInput" placeholder="Search plants by name, Tamil name, or use…" oninput="filterPlants()">
+    </div>
+
+    <div class="filters" id="filterBtns">
+      <button class="filter-btn active" onclick="setFilter('all', this)">All Plants</button>
+      <button class="filter-btn" onclick="setFilter('cold', this)">🤧 Cold & Cough</button>
+      <button class="filter-btn" onclick="setFilter('fever', this)">🌡️ Fever</button>
+      <button class="filter-btn" onclick="setFilter('digestion', this)">🍃 Digestion</button>
+      <button class="filter-btn" onclick="setFilter('skincare', this)">✨ Skin Care</button>
+      <button class="filter-btn" onclick="setFilter('diabetes', this)">💉 Diabetes</button>
+      <button class="filter-btn" onclick="setFilter('pain', this)">🩹 Pain Relief</button>
+      <button class="filter-btn" onclick="setFilter('immunity', this)">🛡️ Immunity</button>
+      <button class="filter-btn" onclick="setFilter('home', this)">🏠 Home Plants</button>
+    </div>
+  </div>
+
+  <div class="plants-section">
+    <div class="section-label" id="resultLabel">Showing all 12 plants</div>
+    <div class="plants-grid" id="plantsGrid"></div>
+  </div>
+</div>
+
+<!-- DETAIL PAGE -->
+<div id="detail-page">
+  <div class="detail-hero" id="detailHero">
+    <div class="detail-hero-bg" id="detailBg"></div>
+    <div class="detail-hero-overlay"></div>
+    <div class="detail-hero-content">
+      <button class="detail-back" onclick="showHome()">← Back to Encyclopedia</button>
+      <div id="detailHomeTag"></div>
+      <div class="detail-title" id="detailTitle"></div>
+      <div class="detail-tamil" id="detailTamil"></div>
+      <div class="detail-sci" id="detailSci"></div>
+    </div>
+  </div>
+  <div class="detail-body" id="detailBody"></div>
+</div>
+
+<footer>
+  🌿 Mooligai — Medicinal Plant Encyclopedia &nbsp;|&nbsp; For educational purposes only. Consult a physician before use.
+</footer>
+
+</div>
+
+<script>
+const plants = [
+  {
+    id: 1,
+    name: "Tulsi",
+    tamil: "துளசி (Tulasi)",
+    common: "Holy Basil",
+    scientific: "Ocimum tenuiflorum",
+    soil: "Well-drained, loamy soil with good organic content",
+    homePlant: true,
+    image: "images/basil.jpg",
+    categories: ["cold","fever","immunity"],
+    tags: ["Cold & Cough", "Fever", "Immunity"],
+    uses: [
+      "Treating respiratory disorders like cold, cough, and asthma",
+      "Used in herbal teas for throat infections",
+      "Boiled leaves used as steam inhalation for nasal congestion",
+      "Juice mixed with ginger for fever and flu",
+      "Used in traditional pooja (worship) rituals across South India"
+    ],
+    benefits: [
+      "Powerful adaptogen — reduces stress and anxiety",
+      "Rich in antioxidants: eugenol, rosmarinic acid, and vitamin C",
+      "Anti-inflammatory and antibacterial properties",
+      "Boosts immune function and fights infections",
+      "Supports respiratory health and clears mucus",
+      "May help regulate blood sugar levels"
+    ],
+    sideEffects: [
+      "May slow blood clotting — avoid before surgery",
+      "Can reduce fertility with excessive use",
+      "Avoid during pregnancy in large quantities",
+      "May lower blood sugar — monitor if diabetic"
+    ]
+  },
+  {
+    id: 2,
+    name: "Neem",
+    tamil: "வேம்பு (Vembu)",
+    common: "Indian Lilac",
+    scientific: "Azadirachta indica",
+    soil: "Sandy loam to clay, drought-tolerant, pH 6.2–7.0",
+    homePlant: false,
+    image: "images/neem.jpg",
+    tags: ["Skin Care", "Fever", "Immunity"],
+    uses: [
+      "Leaf paste applied to treat acne and skin rashes",
+      "Bark decoction used for fever and malaria",
+      "Neem oil used in antifungal and antibacterial formulations",
+      "Twigs used as natural toothbrush (datun)",
+      "Leaves boiled in bath water for chickenpox and skin irritations"
+    ],
+    benefits: [
+      "One of the most potent natural antibiotics and antifungals",
+      "Excellent for treating dandruff and scalp issues",
+      "Purifies blood and detoxifies the body",
+      "Anti-malarial properties (azadirachtin compound)",
+      "Promotes wound healing and reduces inflammation",
+      "Natural pesticide and insect repellent"
+    ],
+    sideEffects: [
+      "Toxic in large doses — especially neem oil",
+      "Never give to infants or young children",
+      "May cause liver damage with prolonged overconsumption",
+      "Avoid during pregnancy — can cause miscarriage",
+      "Can interfere with immunosuppressant medications"
+    ]
+  },
+  {
+    id: 3,
+    name: "Aloe Vera",
+    tamil: "சோற்றுக் கற்றாழை (Sotru Katrazhai)",
+    common: "Aloe Vera",
+    scientific: "Aloe barbadensis miller",
+    soil: "Sandy, well-drained soil; tolerates poor, dry conditions",
+    homePlant: true,
+    image: "images/aloe.jpg",
+    tags: ["Skin Care", "Digestion"],
+    uses: [
+      "Gel applied topically for burns, sunburns, and wounds",
+      "Juice consumed for constipation and digestive issues",
+      "Used in hair masks to reduce dandruff and promote growth",
+      "Face masks for hydration and anti-aging",
+      "Treats psoriasis and eczema symptoms"
+    ],
+    benefits: [
+      "Contains 75+ active compounds including vitamins A, C, E, and B12",
+      "Excellent wound healer and skin moisturizer",
+      "Anti-inflammatory for both internal and external use",
+      "Aids digestion and soothes IBS symptoms",
+      "Antioxidant-rich — fights free radicals",
+      "Lowers blood sugar levels in type 2 diabetes"
+    ],
+    sideEffects: [
+      "Aloe latex can cause severe diarrhea and cramping",
+      "Not recommended for pregnant women",
+      "May lower blood sugar — caution with diabetes medication",
+      "Topical allergy possible — do a patch test first",
+      "Long-term oral use may cause electrolyte imbalance"
+    ]
+  },
+  {
+    id: 4,
+    name: "Ginger",
+    tamil: "இஞ்சி (Inji)",
+    common: "Ginger",
+    scientific: "Zingiber officinale",
+    soil: "Rich, moist, well-drained loamy soil, partial shade",
+    homePlant: true,
+    image: "images/ginger.jpg",
+    categories: ["cold","digestion","pain","fever"],
+    tags: ["Cold & Cough", "Digestion", "Pain Relief", "Fever"],
+    uses: [
+      "Fresh juice with honey for sore throat and cold",
+      "Tea for nausea, motion sickness, and morning sickness",
+      "Paste applied for joint and muscle pain",
+      "Consumed to stimulate digestive enzymes",
+      "Used as a warming spice in traditional Siddha medicine"
+    ],
+    benefits: [
+      "Gingerol compound has powerful anti-nausea effects",
+      "Reduces muscle soreness and exercise-induced inflammation",
+      "Lowers blood sugar and improves insulin sensitivity",
+      "Effective against menstrual pain — comparable to ibuprofen",
+      "May reduce LDL cholesterol",
+      "Has anti-cancer properties in early research"
+    ],
+    sideEffects: [
+      "May cause heartburn in some individuals",
+      "Blood-thinning effect — avoid before surgery",
+      "High doses may cause mouth irritation",
+      "Interact with blood pressure and diabetes medications"
+    ]
+  },
+  {
+    id: 5,
+    name: "Turmeric",
+    tamil: "மஞ்சள் (Manjal)",
+    common: "Turmeric",
+    scientific: "Curcuma longa",
+    soil: "Well-drained, sandy or clayey loam, pH 4.5–7.5",
+    homePlant: true,
+    image: "images/turmeric.jpg",
+    categories: ["skincare","pain","immunity","fever"],
+    tags: ["Skin Care", "Pain Relief", "Immunity", "Fever"],
+    uses: [
+      "Golden milk (turmeric latte) for inflammation and immunity",
+      "Paste applied to wounds, cuts, and skin infections",
+      "Mixed with warm water as a gargle for throat pain",
+      "Used in cooking to impart colour and health benefits",
+      "Applied on face as brightening and anti-acne mask"
+    ],
+    benefits: [
+      "Curcumin is one of the most studied natural anti-inflammatories",
+      "Powerful antioxidant — neutralizes free radicals",
+      "Boosts brain-derived neurotrophic factor (BDNF)",
+      "May lower risk of heart disease and Alzheimer's",
+      "Anti-cancer properties in clinical research",
+      "Enhances skin glow and treats hyperpigmentation"
+    ],
+    sideEffects: [
+      "High doses may cause stomach upset and nausea",
+      "May cause liver problems in very large amounts",
+      "Avoid with gallbladder disease",
+      "Blood thinning — caution before surgery",
+      "Can stain skin yellow with heavy topical use"
+    ]
+  },
+  {
+    id: 6,
+    name: "Brahmi",
+    tamil: "பிரம்மி (Brahmi)",
+    common: "Waterhyssop / Brahmi",
+    scientific: "Bacopa monnieri",
+    soil: "Moist, marshy soil; grows well near water bodies",
+    homePlant: false,
+    image: "images/brahmi.jpg",
+    categories: ["immunity"],
+    tags: ["Memory", "Stress Relief", "Immunity"],
+    uses: [
+      "Oil extract massaged into scalp for hair growth",
+      "Consumed as chutney or juice for brain health",
+      "Used in Ayurvedic formulations for anxiety and ADHD",
+      "Leaf tea for epilepsy and nervous disorders",
+      "Applied on skin for eczema and psoriasis"
+    ],
+    benefits: [
+      "Bacosides enhance memory and cognitive function",
+      "Reduces anxiety and cortisol levels significantly",
+      "Neuroprotective — may delay age-related cognitive decline",
+      "Antioxidant-rich with anti-inflammatory properties",
+      "Supports thyroid function",
+      "Promotes hair growth and darkens premature gray hair"
+    ],
+    sideEffects: [
+      "May cause nausea, stomach cramps, and diarrhea",
+      "Can increase bowel movements — use caution with IBS",
+      "Avoid during pregnancy",
+      "May slow heart rate — caution with heart medication",
+      "Can interact with thyroid drugs"
+    ]
+  },
+  {
+    id: 7,
+    name: "Curry Leaf",
+    tamil: "கறிவேப்பிலை (Karuveppilai)",
+    common: "Curry Leaf Tree",
+    scientific: "Murraya koenigii",
+    soil: "Well-drained, fertile loamy soil, full sunlight",
+    homePlant: true,
+    image: "images/curryleaves.jpg",
+    categories: ["diabetes","digestion","skincare"],
+    tags: ["Diabetes", "Digestion", "Hair Care"],
+    uses: [
+      "Fresh leaves consumed on empty stomach for diabetes",
+      "Added to cooking to aid digestion and gut health",
+      "Leaf paste applied to hair to reduce greying",
+      "Juice used to treat nausea, vomiting, and diarrhea",
+      "Used in weight management herbal preparations"
+    ],
+    benefits: [
+      "Rich in iron, calcium, and antioxidants",
+      "Significantly lowers blood glucose levels",
+      "Anti-dysenteric and anti-diarrheal properties",
+      "Promotes melanin production — prevents premature greying",
+      "Liver protective and detoxifying effects",
+      "Reduces LDL cholesterol and triglycerides"
+    ],
+    sideEffects: [
+      "Generally safe in culinary amounts",
+      "Excessive use may lower blood sugar dangerously",
+      "Avoid concentrated extracts during pregnancy",
+      "May cause mild stomach upset in sensitive individuals"
+    ]
+  },
+  {
+    id: 8,
+    name: "Ashwagandha",
+    tamil: "அஸ்வகந்தா (Aswagandha)",
+    common: "Indian Winter Cherry / Poison Gooseberry",
+    scientific: "Withania somnifera",
+    soil: "Sandy loam, well-drained; dry and semi-arid conditions",
+    homePlant: false,
+    image: "images/aswagantha.jpg",
+    categories: ["immunity","pain"],
+    tags: ["Stress Relief", "Immunity", "Pain Relief"],
+    uses: [
+      "Root powder mixed with warm milk at night for stress",
+      "Used in formulations to boost testosterone and fertility",
+      "Prescribed for chronic fatigue and adrenal exhaustion",
+      "Helps athletes improve strength and endurance",
+      "Traditional remedy for arthritis and joint inflammation"
+    ],
+    benefits: [
+      "Most powerful adaptogen in Ayurvedic medicine",
+      "Reduces cortisol by up to 27% in clinical studies",
+      "Increases testosterone and improves male fertility",
+      "Boosts VO2 max — improves physical performance",
+      "Reduces inflammation markers like CRP",
+      "May improve memory, focus, and reaction time"
+    ],
+    sideEffects: [
+      "High doses cause stomach upset, vomiting, or diarrhea",
+      "Avoid during pregnancy — can induce early labor",
+      "May cause drowsiness — avoid with sedatives",
+      "Thyroid stimulating effect — caution with thyroid disorders",
+      "Rare cases of liver injury with very high doses"
+    ]
+  },
+  {
+    id: 9,
+    name: "Amla",
+    tamil: "நெல்லிக்காய் (Nellikkai)",
+    common: "Indian Gooseberry",
+    scientific: "Phyllanthus emblica",
+    soil: "Light, well-drained loamy soil; drought-resistant",
+    homePlant: false,
+    image: "images/amla.jpg",
+    tags: ["Immunity", "Skin Care", "Diabetes", "Hair Care"],
+    uses: [
+      "Raw fruit or juice consumed daily for immunity boost",
+      "Amla oil applied for hair growth and scalp health",
+      "Triphala (amla + two herbs) for digestion and detox",
+      "Consumed for eye health and vision improvement",
+      "Face packs for anti-aging and bright skin"
+    ],
+    benefits: [
+      "One of the richest natural sources of Vitamin C (600mg/100g)",
+      "Extraordinary antioxidant — neutralizes oxidative stress",
+      "Strengthens hair follicles and prevents hair loss",
+      "Improves liver function and bile secretion",
+      "Anti-diabetic — improves insulin sensitivity",
+      "Enhances natural collagen production for skin elasticity"
+    ],
+    sideEffects: [
+      "Very high Vitamin C may cause kidney stones",
+      "Can cause stomach acidity in some individuals",
+      "Blood-thinning — avoid before surgery",
+      "May lower blood sugar significantly",
+      "Amla juice may damage tooth enamel — rinse after drinking"
+    ]
+  },
+  {
+    id: 10,
+    name: "Peppermint",
+    tamil: "மிளகு புதினா (Milagu Puthina)",
+    common: "Peppermint",
+    scientific: "Mentha × piperita",
+    soil: "Moist, fertile, well-drained soil; partial shade",
+    homePlant: true,
+    image: "images/mint.jpg",
+    categories: ["cold","digestion","pain"],
+    tags: ["Cold & Cough", "Digestion", "Pain Relief"],
+    uses: [
+      "Tea for headaches, nausea, and digestive issues",
+      "Inhaling steam from peppermint leaves for sinus relief",
+      "Essential oil applied to temples for tension headaches",
+      "Used in toothpastes and mouthwashes for oral health",
+      "Cooling agent in sunscreens and after-sun lotions"
+    ],
+    benefits: [
+      "Menthol activates cold receptors — natural pain reliever",
+      "Relieves IBS symptoms and bloating",
+      "Antimicrobial — kills oral bacteria and freshens breath",
+      "Improves exercise performance by reducing perceived effort",
+      "Relieves tension headaches as effectively as paracetamol",
+      "Antispasmodic — relaxes smooth muscles in the gut"
+    ],
+    sideEffects: [
+      "Mint oil can cause heartburn by relaxing the esophageal sphincter",
+      "Never apply essential oil directly to infants' skin",
+      "May trigger allergic reactions in sensitive individuals",
+      "Overuse may cause mouth ulcers",
+      "Interact with cyclosporine (transplant medication)"
+    ]
+  },
+  {
+    id: 11,
+    name: "Moringa",
+    tamil: "முருங்கை (Murungai)",
+    common: "Drumstick Tree / Moringa",
+    scientific: "Moringa oleifera",
+    soil: "Sandy or loamy, slightly acidic to neutral pH, dry climate",
+    homePlant: false,
+    image: "images/morriga.jpg",
+    categories: ["diabetes","immunity","skincare","fever"],
+    tags: ["Diabetes", "Immunity", "Skin Care", "Fever"],
+    uses: [
+      "Leaves cooked in curries and sambar in Tamil Nadu",
+      "Leaf powder in smoothies for daily nutrition",
+      "Drumstick pods cooked with lentils for iron",
+      "Seed oil (ben oil) used in skin and hair care",
+      "Leaf juice consumed for lowering blood sugar"
+    ],
+    benefits: [
+      "Called 'miracle tree' — contains 90+ nutrients",
+      "7× more Vitamin C than oranges, 4× more calcium than milk",
+      "Powerful anti-inflammatory with isothiocyanates",
+      "Lowers blood sugar and cholesterol significantly",
+      "Protects against arsenic toxicity",
+      "Antimicrobial against both bacteria and fungi"
+    ],
+    sideEffects: [
+      "Root bark may cause uterine contractions — avoid in pregnancy",
+      "High doses of leaf powder may have laxative effect",
+      "May interfere with thyroid medications",
+      "Excess consumption may overload kidneys with minerals",
+      "Seed powder can be toxic in large quantities"
+    ]
+  },
+  {
+    id: 12,
+    name: "Lemon Grass",
+    tamil: "எலுமிச்சை புல் (Elumichai Pul)",
+    common: "Lemongrass",
+    scientific: "Cymbopogon citratus",
+    soil: "Fertile, moist, well-drained soil; full sun to partial shade",
+    homePlant: true,
+    image: "images/lemongrass.jpg",
+    categories: ["fever","cold","digestion","skincare"],
+    tags: ["Fever", "Cold & Cough", "Digestion", "Skin Care"],
+    uses: [
+      "Herbal tea for fever, cold, and respiratory infections",
+      "Decoction with ginger for flu and body aches",
+      "Essential oil used in aromatherapy for anxiety",
+      "Applied topically for fungal infections",
+      "Used as mosquito and insect repellent"
+    ],
+    benefits: [
+      "Powerful antifungal and antibacterial essential oils",
+      "Rich in antioxidants like quercetin and isoorientin",
+      "Diuretic — helps flush toxins and reduce water retention",
+      "Reduces fever by promoting perspiration",
+      "Calms anxiety and improves sleep quality",
+      "Anti-inflammatory benefits for arthritis"
+    ],
+    sideEffects: [
+      "May cause skin irritation when applied undiluted",
+      "Toxic to pets — keep away from cats and dogs",
+      "Avoid during pregnancy in medicinal amounts",
+      "May lower blood pressure — caution with BP medication",
+      "Rare allergic reactions reported"
+    ]
+  }
+];
+
+let activeFilter = 'all';
+let searchQuery = '';
+
+function renderGrid(list) {
+  const grid = document.getElementById('plantsGrid');
+  const label = document.getElementById('resultLabel');
+  label.textContent = `Showing ${list.length} plant${list.length !== 1 ? 's' : ''}`;
+
+  if (list.length === 0) {
+    grid.innerHTML = `<div class="no-results"><div style="font-size:3rem">🌱</div><p>No plants found. Try a different search or filter.</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map((p, i) => `
+    <div class="plant-card" style="animation-delay:${i * 0.05}s" onclick="showDetail(${p.id})">
+      <div class="plant-img-wrap">
+        <img src="${p.image}" alt="${p.name}" loading="lazy" onerror="this.src='https://via.placeholder.com/320x190/e8f5e9/2D5A3D?text=${encodeURIComponent(p.name)}'">
+        <div class="plant-badge">${p.tags[0]}</div>
+        ${p.homePlant ? '<div class="home-badge">🏠 Home Plant</div>' : ''}
+      </div>
+      <div class="plant-body">
+        <div class="plant-name">${p.name}</div>
+        <div class="plant-tamil">${p.tamil}</div>
+        <div class="plant-sci">🔬 ${p.scientific}</div>
+        <div class="plant-tags">
+          ${p.tags.map(t => `<span class="plant-tag">${t}</span>`).join('')}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterPlants() {
+  searchQuery = document.getElementById('searchInput').value.toLowerCase();
+  let filtered = plants;
+  if (activeFilter === 'home') {
+    filtered = filtered.filter(p => p.homePlant);
+  } else if (activeFilter !== 'all') {
+    filtered = filtered.filter(p => p.categories.includes(activeFilter));
+  }
+  if (searchQuery) {
+    filtered = filtered.filter(p =>
+      p.name.toLowerCase().includes(searchQuery) ||
+      p.tamil.toLowerCase().includes(searchQuery) ||
+      p.common.toLowerCase().includes(searchQuery) ||
+      p.scientific.toLowerCase().includes(searchQuery) ||
+      p.tags.some(t => t.toLowerCase().includes(searchQuery)) ||
+      p.uses.some(u => u.toLowerCase().includes(searchQuery))
+    );
+  }
+  renderGrid(filtered);
+}
+
+function setFilter(f, btn) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filterPlants();
+}
+
+function showDetail(id) {
+  const p = plants.find(x => x.id === id);
+  document.getElementById('home-page').style.display = 'none';
+  document.getElementById('detail-page').style.display = 'block';
+  window.scrollTo(0,0);
+
+  document.getElementById('detailBg').style.backgroundImage = `url('${p.image}')`;
+  document.getElementById('detailTitle').textContent = p.name + ' / ' + p.common;
+  document.getElementById('detailTamil').textContent = '🌿 Tamil: ' + p.tamil;
+  document.getElementById('detailSci').textContent = '🔬 ' + p.scientific;
+  document.getElementById('detailHomeTag').innerHTML = p.homePlant
+    ? '<div class="detail-home-tag">🏠 Ideal Home Plant</div>'
+    : '';
+
+  const body = document.getElementById('detailBody');
+  body.innerHTML = `
+    <div class="detail-meta-grid">
+      <div class="meta-card">
+        <div class="meta-label">Tamil Name</div>
+        <div class="meta-value">${p.tamil}</div>
+      </div>
+      <div class="meta-card">
+        <div class="meta-label">Common Name</div>
+        <div class="meta-value">${p.common}</div>
+      </div>
+      <div class="meta-card">
+        <div class="meta-label">Scientific Name</div>
+        <div class="meta-value" style="font-style:italic;font-size:0.85rem">${p.scientific}</div>
+      </div>
+      <div class="meta-card">
+        <div class="meta-label">Soil Type</div>
+        <div class="meta-value" style="font-size:0.82rem">${p.soil}</div>
+      </div>
+      <div class="meta-card">
+        <div class="meta-label">Home Plant</div>
+        <div class="meta-value" style="color:${p.homePlant ? 'var(--accent-gold)' : 'var(--text-light)'}">${p.homePlant ? '✅ Yes — Highly Recommended' : '⚠️ Best in garden/outdoors'}</div>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-title"><span class="section-icon">🌡️</span> Uses &amp; Applications</div>
+      <ul class="detail-list">
+        ${p.uses.map(u => `<li>${u}</li>`).join('')}
+      </ul>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-title"><span class="section-icon">💚</span> Health Benefits</div>
+      <ul class="detail-list">
+        ${p.benefits.map(b => `<li>${b}</li>`).join('')}
+      </ul>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-title"><span class="section-icon">⚠️</span> Side Effects &amp; Precautions</div>
+      <ul class="detail-list side-effects">
+        ${p.sideEffects.map(s => `<li>${s}</li>`).join('')}
+      </ul>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-title"><span class="section-icon">🏷️</span> Treatment Categories</div>
+      <div class="detail-tags-row">
+        ${p.tags.map(t => `<span class="detail-tag">${t}</span>`).join('')}
+        ${p.homePlant ? '<span class="detail-tag" style="background:rgba(200,151,58,0.12);color:var(--accent-gold)">🏠 Home Plant</span>' : ''}
+      </div>
+    </div>
+
+    <div style="margin-top:2rem;padding:1.2rem;background:rgba(192,90,43,0.06);border-left:3px solid var(--accent-terracotta);border-radius:var(--radius)">
+      <p style="font-size:0.85rem;color:var(--text-mid);line-height:1.6">
+        <strong style="color:var(--accent-terracotta)">Disclaimer:</strong> This information is for educational purposes only. Always consult a qualified Ayurvedic physician or healthcare provider before using medicinal plants for treatment.
+      </p>
+    </div>
+  `;
+}
+
+function showHome() {
+  document.getElementById('home-page').style.display = 'block';
+  document.getElementById('detail-page').style.display = 'none';
+  window.scrollTo(0,0);
+}
+
+// Init
+renderGrid(plants);
+</script>
+</body>
+</html>
